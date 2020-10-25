@@ -2787,6 +2787,7 @@ class Zeroconf(QuietLogger):
                                 "_services._dns-sd._udp.local.", _TYPE_PTR, _CLASS_IN, _DNS_OTHER_TTL, stype
                             ),
                         )
+                log.debug('Services: %s, question.name', self.services, question.name)
                 for service in self.services.values():
                     if question.name == service.type:
                         if out is None:
