@@ -1338,6 +1338,7 @@ class Engine(threading.Thread):
     def run(self) -> None:
         count = 0
         import cProfile
+
         pr = cProfile.Profile()
         pr.enable()
         while not self.zc.done:
