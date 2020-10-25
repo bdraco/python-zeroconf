@@ -2776,7 +2776,6 @@ class Zeroconf(QuietLogger):
                 out.add_question(question)
 
         for question in msg.questions:
-            log.debug('Services: %s, question.name', self.services, question.name)
             if question.type == _TYPE_PTR:
                 if question.name == "_services._dns-sd._udp.local.":
                     for stype in self.servicetypes.keys():
@@ -2788,6 +2787,7 @@ class Zeroconf(QuietLogger):
                                 "_services._dns-sd._udp.local.", _TYPE_PTR, _CLASS_IN, _DNS_OTHER_TTL, stype
                             ),
                         )
+                log.debug('Services: %s, question.name: %s', self.services, question.name)
                 for service in self.services.values():
                     if question.name == service.type:
                         if out is None:
