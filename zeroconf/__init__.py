@@ -2851,7 +2851,7 @@ class Zeroconf(QuietLogger):
                                         ),
                                     )
 
-                    service = self.services.get(name_to_find)
+                    service = self.services.get(name_to_find)  # type: ignore
                     if service is None:
                         continue
 
