@@ -1336,6 +1336,10 @@ class Engine(threading.Thread):
         self.name = "zeroconf-Engine-%s" % (getattr(self, 'native_id', self.ident),)
 
     def run(self) -> None:
+        count = 0
+        import cProfile
+        pr = cProfile.Profile()
+        pr.enable()
         while not self.zc.done:
             with self.condition:
                 rs = list(self.readers.keys())
@@ -1352,6 +1356,11 @@ class Engine(threading.Thread):
                         for socket_ in rr:
                             reader = self.readers.get(socket_)
                             if reader:
+                                count += 1
+                                if count == 1000:
+                                    pr.disable()
+                                    pr.create_stats()
+                                    pr.dump_stats("zeroconf.cprof")
                                 reader.handle_read(socket_)
 
                         if self.socketpair[0] in rr:
