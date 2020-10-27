@@ -1173,6 +1173,7 @@ class DNSOutgoing:
 
         # we have to at least write out the question
         first_time = True
+        self.reset_for_next_packet()
 
         while (
             first_time
