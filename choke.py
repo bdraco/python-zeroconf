@@ -130,5 +130,5 @@ for record in RECORDS:
             record["address"],
         )
     )
-    import pprint
-    pprint.pprint(out.packets())
+import pprint
+pprint.pprint(out.packets())
