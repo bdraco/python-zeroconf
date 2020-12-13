@@ -667,10 +667,7 @@ class DNSText(DNSRecord):
 
     def __repr__(self) -> str:
         """String representation"""
-        if len(self.text) > 10:
-            return self.to_string(self.text[:7]) + "..."
-        else:
-            return self.to_string(self.text)
+        return self.to_string(self.text)
 
 
 class DNSService(DNSRecord):
