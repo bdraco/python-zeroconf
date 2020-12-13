@@ -18,7 +18,7 @@ from zeroconf import (
     _CLASS_IN,
     _DNS_OTHER_TTL,
 )
-
+import dns.message
 
 import logging
 
@@ -153,3 +153,4 @@ packets = out.packets()
 assert packets[0] == expected_packet
 
 DNSIncoming(packets[0])
+dns.message.from_wire(packets[0])
