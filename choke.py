@@ -149,4 +149,6 @@ packets = out.packets()
 
 assert packets[0] == expected_packet
 
+DNSIncoming(packets[0])
+
 
