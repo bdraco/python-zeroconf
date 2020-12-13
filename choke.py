@@ -4,6 +4,7 @@ from zeroconf import (
     DNSService,
     DNSText,
     DNSAddress,
+    DNSIncoming,
     DNSOutgoing,
     _TYPE_TXT,
     _FLAGS_QR_RESPONSE,
@@ -130,5 +131,7 @@ for record in RECORDS:
             record["address"],
         )
     )
-import pprint
-pprint.pprint(out.packets())
+
+for i in range(0,5):
+    for packet in out.packets():
+        print(DNSIncoming(packet))
