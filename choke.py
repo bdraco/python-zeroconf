@@ -21,6 +21,7 @@ from zeroconf import (
 
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 out = DNSOutgoing(_FLAGS_QR_RESPONSE | _FLAGS_AA)
 
@@ -111,7 +112,7 @@ out.add_answer_at_time(
         _DNS_OTHER_TTL,
         b'\x13md=HASS Bridge W9DN\x06pv=1.0\x14id=11:8E:DB:5B:5C:C5\x05c#=12\x04s#=1\x04ff=0\x04ci=2\x04sf=0\x0bsh=6fLM5A==',
     ),
-    0     
+    0,
 )
 
 for record in ADDITIONALS:
@@ -152,5 +153,3 @@ packets = out.packets()
 assert packets[0] == expected_packet
 
 DNSIncoming(packets[0])
-
-
