@@ -2927,6 +2927,7 @@ class Zeroconf(QuietLogger):
     def send(self, out: DNSOutgoing, addr: Optional[str] = None, port: int = _MDNS_PORT) -> None:
         """Sends an outgoing packet."""
         packets = out.packets()
+        log.warning("Sending out: %s", out)
         packet_num = 0
         for packet in packets:
             packet_num += 1
