@@ -19,7 +19,9 @@ from zeroconf import (
     _DNS_OTHER_TTL,
 )
 
-logging.getLogger("zeroconf").setLevel(logging.DEBUG)
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
 out = DNSOutgoing(_FLAGS_QR_RESPONSE | _FLAGS_AA)
 
 service_type = '_hap._tcp.local.'
