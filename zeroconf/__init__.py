@@ -1064,6 +1064,7 @@ class DNSOutgoing:
         compact two-byte reference to an appearance of that data somewhere
         earlier in the message [RFC1035].
         """
+
         # split name into each label
         parts = name.split('.')
         if not parts[-1]:
@@ -1086,14 +1087,12 @@ class DNSOutgoing:
 
         # write the new names out.
         for part in parts[:count]:
-            pos = len(b''.join(self.data))
             self.write_utf(part)
 
         # if we wrote part of the name, create a pointer to the rest
         if count != len(name_suffices):
             # Found substring in packet, create pointer
             index = self.names[name_suffices[count]]
-
             self.write_byte((index >> 8) | 0xC0)
             self.write_byte(index & 0xFF)
         else:
@@ -1115,7 +1114,6 @@ class DNSOutgoing:
             return False
 
         start_data_length, start_size = len(self.data), self.size
-
         self.write_name(record.name)
         self.write_short(record.type)
         if record.unique and self.multicast:
@@ -2937,7 +2935,6 @@ class Zeroconf(QuietLogger):
     def send(self, out: DNSOutgoing, addr: Optional[str] = None, port: int = _MDNS_PORT) -> None:
         """Sends an outgoing packet."""
         packets = out.packets()
-        log.warning("Sending out: %s as %s", out, packets)
         packet_num = 0
         for packet in packets:
             packet_num += 1
