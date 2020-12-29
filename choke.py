@@ -153,6 +153,7 @@ print (len(expected_packet))
 packets = out.packets()
 
 #assert packets[0] == expected_packet
+for packet in packets:
+    print(DNSIncoming(packet))
 
-DNSIncoming(packets[0])
 dns.message.from_wire(packets[0])

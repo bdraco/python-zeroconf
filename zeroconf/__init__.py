@@ -884,7 +884,7 @@ class DNSIncoming(QuietLogger):
                     next_ = off + 1
                 off = ((length & 0x3F) << 8) | self.data[off]
                 if off >= first:
-                    raise IncomingDecodeError("Bad domain name (circular) at %s" % (off,))
+                    raise IncomingDecodeError("Bad domain name (circular) at %s which points to %s" % (self.offset,off))
                 first = off
             else:
                 raise IncomingDecodeError("Bad domain name at %s" % (off,))
@@ -909,9 +909,7 @@ class DNSOutgoing:
         self.packets_data = []  # type: List[bytes]
 
         # these 3 are per-packet -- see also reset_for_next_packet()
-        self.names = {}  # type: Dict[str, int]
-        self.data = []  # type: List[bytes]
-        self.size = 12
+        self.reset_for_next_packet()
 
         self.state = self.State.init
 
@@ -921,9 +919,11 @@ class DNSOutgoing:
         self.additionals = []  # type: List[DNSRecord]
 
     def reset_for_next_packet(self) -> None:
-        self.names = {}
-        self.data = []
+        self.names = {} # type: Dict[str, int]
+        self.data = [] # type: List[bytes]
         self.size = 12
+        import pprint
+        pprint.pprint("[---next packet---]")
 
     def __repr__(self) -> str:
         return '<DNSOutgoing:{%s}>' % ', '.join(
@@ -1005,10 +1005,16 @@ class DNSOutgoing:
     def pack(self, format_: Union[bytes, str], value: Any) -> None:
         self.data.append(struct.pack(format_, value))
         self.size += struct.calcsize(format_)
+        import pprint
+        pprint.pprint(["packed", struct.pack(format_, value), self.size])
 
     def write_byte(self, value: int) -> None:
         """Writes a single byte to the packet"""
         self.pack(b'!c', int2byte(value))
+
+    def insert_short_at_start(self, value: int) -> None:
+        """Inserts an unsigned short at the start of the packet"""
+        self.data.insert(0, struct.pack(b'!H', value))
 
     def insert_short(self, index: int, value: int) -> None:
         """Inserts an unsigned short in a certain position in the packet"""
@@ -1028,6 +1034,8 @@ class DNSOutgoing:
         assert isinstance(value, bytes)
         self.data.append(value)
         self.size += len(value)
+        import pprint
+        pprint.pprint(["write_string", value, self.size])
 
     def write_utf(self, s: str) -> None:
         """Writes a UTF-8 string of a given length to the packet"""
@@ -1058,14 +1066,19 @@ class DNSOutgoing:
         compact two-byte reference to an appearance of that data somewhere
         earlier in the message [RFC1035].
         """
+#        self.write_utf(name)
+#        self.write_byte(0)
+#        return
 
         # split name into each label
         parts = name.split('.')
         if not parts[-1]:
             parts.pop()
 
+        import pprint
         # construct each suffix
         name_suffices = ['.'.join(parts[i:]) for i in range(len(parts))]
+#        pprint.pprint(["name_suffices", name_suffices])
 
         # look for an existing name or suffix
         for count, sub_name in enumerate(name_suffices):
@@ -1078,15 +1091,23 @@ class DNSOutgoing:
         name_length = len(name.encode('utf-8'))
         for suffix in name_suffices[:count]:
             self.names[suffix] = self.size + name_length - len(suffix.encode('utf-8')) - 1
+            pprint.pprint(["saved suffix", suffix, self.names[suffix]])
 
         # write the new names out.
         for part in parts[:count]:
+            pos = len(b''.join(self.data))
             self.write_utf(part)
+            pprint.pprint(["after write_utf", part, pos])
+
+
 
         # if we wrote part of the name, create a pointer to the rest
         if count != len(name_suffices):
             # Found substring in packet, create pointer
+            import pprint
             index = self.names[name_suffices[count]]
+            pprint.pprint(["Found name at index", name_suffices[count], index])
+
             self.write_byte((index >> 8) | 0xC0)
             self.write_byte(index & 0xFF)
         else:
@@ -1204,15 +1225,15 @@ class DNSOutgoing:
                 if self.write_record(additional, 0):
                     additionals_written += 1
 
-            self.insert_short(0, additionals_written)
-            self.insert_short(0, authorities_written)
-            self.insert_short(0, answers_written)
-            self.insert_short(0, questions_written)
-            self.insert_short(0, self.flags)
+            self.insert_short_at_start(additionals_written)
+            self.insert_short_at_start(authorities_written)
+            self.insert_short_at_start(answers_written)
+            self.insert_short_at_start(questions_written)
+            self.insert_short_at_start(self.flags)
             if self.multicast:
-                self.insert_short(0, 0)
+                self.insert_short_at_start(0)
             else:
-                self.insert_short(0, self.id)
+                self.insert_short_at_start(self.id)
             self.packets_data.append(b''.join(self.data))
             self.reset_for_next_packet()
 
