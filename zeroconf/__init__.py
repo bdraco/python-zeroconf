@@ -884,7 +884,9 @@ class DNSIncoming(QuietLogger):
                     next_ = off + 1
                 off = ((length & 0x3F) << 8) | self.data[off]
                 if off >= first:
-                    raise IncomingDecodeError("Bad domain name (circular) at %s which points to %s" % (self.offset,off))
+                    raise IncomingDecodeError(
+                        "Bad domain name (circular) at %s which points to %s" % (self.offset, off)
+                    )
                 first = off
             else:
                 raise IncomingDecodeError("Bad domain name at %s" % (off,))
@@ -919,11 +921,9 @@ class DNSOutgoing:
         self.additionals = []  # type: List[DNSRecord]
 
     def reset_for_next_packet(self) -> None:
-        self.names = {} # type: Dict[str, int]
-        self.data = [] # type: List[bytes]
+        self.names = {}  # type: Dict[str, int]
+        self.data = []  # type: List[bytes]
         self.size = 12
-        import pprint
-        pprint.pprint("[---next packet---]")
 
     def __repr__(self) -> str:
         return '<DNSOutgoing:{%s}>' % ', '.join(
@@ -1005,8 +1005,6 @@ class DNSOutgoing:
     def pack(self, format_: Union[bytes, str], value: Any) -> None:
         self.data.append(struct.pack(format_, value))
         self.size += struct.calcsize(format_)
-        import pprint
-        pprint.pprint(["packed", struct.pack(format_, value), self.size])
 
     def write_byte(self, value: int) -> None:
         """Writes a single byte to the packet"""
@@ -1034,8 +1032,6 @@ class DNSOutgoing:
         assert isinstance(value, bytes)
         self.data.append(value)
         self.size += len(value)
-        import pprint
-        pprint.pprint(["write_string", value, self.size])
 
     def write_utf(self, s: str) -> None:
         """Writes a UTF-8 string of a given length to the packet"""
@@ -1066,19 +1062,13 @@ class DNSOutgoing:
         compact two-byte reference to an appearance of that data somewhere
         earlier in the message [RFC1035].
         """
-#        self.write_utf(name)
-#        self.write_byte(0)
-#        return
-
         # split name into each label
         parts = name.split('.')
         if not parts[-1]:
             parts.pop()
 
-        import pprint
         # construct each suffix
         name_suffices = ['.'.join(parts[i:]) for i in range(len(parts))]
-#        pprint.pprint(["name_suffices", name_suffices])
 
         # look for an existing name or suffix
         for count, sub_name in enumerate(name_suffices):
@@ -1091,22 +1081,16 @@ class DNSOutgoing:
         name_length = len(name.encode('utf-8'))
         for suffix in name_suffices[:count]:
             self.names[suffix] = self.size + name_length - len(suffix.encode('utf-8')) - 1
-            pprint.pprint(["saved suffix", suffix, self.names[suffix]])
 
         # write the new names out.
         for part in parts[:count]:
             pos = len(b''.join(self.data))
             self.write_utf(part)
-            pprint.pprint(["after write_utf", part, pos])
-
-
 
         # if we wrote part of the name, create a pointer to the rest
         if count != len(name_suffices):
             # Found substring in packet, create pointer
-            import pprint
             index = self.names[name_suffices[count]]
-            pprint.pprint(["Found name at index", name_suffices[count], index])
 
             self.write_byte((index >> 8) | 0xC0)
             self.write_byte(index & 0xFF)
@@ -1129,6 +1113,7 @@ class DNSOutgoing:
             return False
 
         start_data_length, start_size = len(self.data), self.size
+
         self.write_name(record.name)
         self.write_short(record.type)
         if record.unique and self.multicast:
@@ -1141,15 +1126,13 @@ class DNSOutgoing:
             self.write_int(record.get_remaining_ttl(now))
         index = len(self.data)
 
-        # Adjust size for the short we will write before this record
-        self.size += 2
+        self.write_short(0)  # Will get replaced with the actual size
         record.write(self)
-        self.size -= 2
-
-        length = sum((len(d) for d in self.data[index:]))
-        # Here is the short we adjusted for
-        self.insert_short(index, length)
-
+        # Adjust size for the short we will write before this record
+        length = sum((len(d) for d in self.data[index + 1 :]))
+        # Here we replace the 0 length short we wrote
+        # before with the actual length
+        self.data[index] = struct.pack(b'!H', length)
         len_limit = _MAX_MSG_ABSOLUTE if allow_long else _MAX_MSG_TYPICAL
 
         # if we go over, then rollback and quit
@@ -1157,6 +1140,13 @@ class DNSOutgoing:
             while len(self.data) > start_data_length:
                 self.data.pop()
             self.size = start_size
+
+            rollback_names = []
+            for name, idx in self.names.items():
+                if idx >= start_size:
+                    rollback_names.append(name)
+            for name in rollback_names:
+                del self.names[name]
             return False
         return True
 
