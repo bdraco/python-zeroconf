@@ -34,10 +34,12 @@ import sys
 import threading
 import time
 import warnings
+
 from collections import OrderedDict
 from typing import Dict, Iterable, List, Optional, Sequence, Union, cast
 from typing import Any, Callable, Set, Tuple  # noqa # used in type hints
 
+import dns.message
 import ifaddr
 
 __author__ = 'Paul Scott-Murphy, William McBrine'
@@ -2938,6 +2940,11 @@ class Zeroconf(QuietLogger):
             if len(packet) > _MAX_MSG_ABSOLUTE:
                 self.log_warning_once("Dropping %r over-sized packet (%d bytes) %r", out, len(packet), packet)
                 return
+            try:
+                log.debug("decode packet: %s", str(dns.message.from_wire(packet)))
+            except Exception as ex:
+                log.debug("invalid packet: %s %s", ex, packet)
+
             log.debug('Sending (%d bytes #%d) %r as %r...', len(packet), packet_num, out, packet)
             for s in self._respond_sockets:
                 if self._GLOBAL_DONE:
