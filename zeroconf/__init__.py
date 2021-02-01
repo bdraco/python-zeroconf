@@ -1422,7 +1422,6 @@ class Listener(QuietLogger):
         except Exception as ex:
             log.debug("invalid incoming packet: %s %s", ex, data)
 
-
         if self.data == data:
             log.debug(
                 'Ignoring duplicate message received from %r:%r (socket %d) (%d bytes) as [%r]',
