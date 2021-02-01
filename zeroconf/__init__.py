@@ -2744,7 +2744,8 @@ class Zeroconf(QuietLogger):
     def handle_response(self, msg: DNSIncoming) -> None:
         """Deal with incoming response packets.  All answers
         are held in the cache, and listeners are notified."""
-        updates = []  # type: List[Tuple[float, DNSRecord, Optional[DNSRecord]]]
+        updates = []  # type: List[Tuple[float, DNSRecord]]
+        adds = []  # type: List[DNSRecord]
         now = current_time_millis()
         for record in msg.answers:
 
@@ -2774,22 +2775,24 @@ class Zeroconf(QuietLogger):
                 if maybe_entry is not None:
                     maybe_entry.reset_ttl(record)
                 else:
-                    self.cache.add(record)
+                    adds.append(record)
                 if updated:
-                    updates.append((now, record, None))
+                    updates.append((now, record))
             elif maybe_entry is not None:
-                updates.append((now, record, maybe_entry))
+                updates.append((now, record))
+                self.cache.remove(maybe_entry)
 
-        if not updates:
+        if not updates and not adds:
             return
 
-        # Only hold the lock if we have updates
+        # Only hold the lock if we need to add or update
+        # expired entries can be removed without the lock
+        # as they are only being removed for garbage collection
         with self._handlers_lock:
-            for update in updates:
-                now, record, entry_to_remove = update
-                self.update_record(update[0], update[1])
-                if entry_to_remove:
-                    self.cache.remove(entry_to_remove)
+            for now, record in updates:
+                self.update_record(now, record)
+            for record in adds:
+                self.cache.add(record)
 
     def handle_query(self, msg: DNSIncoming, addr: Optional[str], port: int) -> None:
         """Deal with incoming query packets.  Provides a response if
