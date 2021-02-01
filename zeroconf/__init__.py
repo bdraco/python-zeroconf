@@ -2946,9 +2946,9 @@ class Zeroconf(QuietLogger):
                 self.log_warning_once("Dropping %r over-sized packet (%d bytes) %r", out, len(packet), packet)
                 return
             try:
-                log.debug("decode packet: %s", str(dns.message.from_wire(packet)))
+                log.debug("outgoing packet: %s", str(dns.message.from_wire(packet)))
             except Exception as ex:
-                log.debug("invalid packet: %s %s", ex, packet)
+                log.debug("invalid outgoing packet: %s %s", ex, packet)
 
             log.debug('Sending (%d bytes #%d) %r as %r...', len(packet), packet_num, out, packet)
             for s in self._respond_sockets:
